@@ -10,7 +10,7 @@
 
 ```bash
 # 1. Download
-wget https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/autosec.sh
+wget https://raw.githubusercontent.com/rosoporto/autoec/main/autosec.sh
 
 # 2. (Optional) Edit settings
 nano autosec.sh
