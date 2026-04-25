@@ -3,20 +3,40 @@
 > Bash-скрипт автоматической установки и настройки `ufw` + `fail2ban` на свежий сервер.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+![Shell](https://img.shields.io/badge/shell-bash-89e051)
+
+---
+
+## Требования
+
+- ОС из списка [поддерживаемых дистрибутивов](#поддерживаемые-дистрибутивы)
+- `bash` 4.0+
+- `sudo` или root-доступ
+- `wget` или `curl` для загрузки скрипта
 
 ---
 
 ## Быстрый старт
 
+**Вариант 1 — wget:**
+
 ```bash
 # 1. Скачать скрипт
-wget https://raw.githubusercontent.com/rosoporto/autoec/main/autosec.sh
+wget https://raw.githubusercontent.com/rosoporto/autosec/main/autosec.sh
 
 # 2. (Опционально) Отредактировать настройки
 nano autosec.sh
 
 # 3. Запустить
 chmod +x autosec.sh
+sudo ./autosec.sh
+```
+
+**Вариант 2 — git clone:**
+
+```bash
+git clone https://github.com/rosoporto/autosec.git
+cd autosec
 sudo ./autosec.sh
 ```
 
@@ -31,7 +51,7 @@ sudo ./autosec.sh
 ## Что делает скрипт
 
 | Компонент | Действие |
-|-----------|----------|
+| --- | --- |
 | **UFW** | Устанавливает, настраивает политики по умолчанию, открывает нужные порты, активирует фаервол |
 | **fail2ban** | Устанавливает, создаёт `jail.local`, защищает SSH от брутфорса, запускает сервис |
 | **Проверка** | Проверяет, что всё работает, и выводит финальный отчёт |
@@ -44,7 +64,7 @@ sudo ./autosec.sh
 - **RHEL** / **CentOS** / **Rocky Linux** / **AlmaLinux**
 - **Fedora**
 - **Arch Linux** / **Manjaro**
-- **Alpine Linux**
+- **Alpine Linux** ⚠️ — использует OpenRC вместо systemd; установите `F2B_BACKEND="auto"` перед запуском
 
 ---
 
@@ -55,7 +75,7 @@ sudo ./autosec.sh
 ### UFW
 
 | Переменная | По умолчанию | Описание |
-|------------|--------------|----------|
+| --- | --- | --- |
 | `UFW_ENABLE_IPV6` | `yes` | Включить поддержку IPv6 |
 | `UFW_DEFAULT_IN` | `deny` | Политика входящих по умолчанию (`deny` / `allow` / `reject`) |
 | `UFW_DEFAULT_OUT` | `allow` | Политика исходящих по умолчанию |
@@ -68,12 +88,12 @@ sudo ./autosec.sh
 ### fail2ban
 
 | Переменная | По умолчанию | Описание |
-|------------|--------------|----------|
+| --- | --- | --- |
 | `F2B_SSH_MAXRETRY` | `3` | Число неудачных попыток входа перед баном |
 | `F2B_SSH_FINDTIME` | `600` | Окно времени для подсчёта попыток (секунды) |
 | `F2B_SSH_BANTIME` | `3600` | Длительность бана (секунды) |
 | `F2B_SSH_ENABLED` | `true` | Включить защиту SSH |
-| `F2B_BACKEND` | `systemd` | Бэкенд логирования (`systemd` или `auto`) |
+| `F2B_BACKEND` | `systemd` | Бэкенд логирования (`systemd` или `auto`; для Alpine — `auto`) |
 | `F2B_BANACTION` | `iptables-multiport` | Действие при бане |
 | `F2B_SENDMAIL` | `""` | Email для уведомлений (пусто = отключено) |
 | `F2B_SENDMAIL_ON_BAN` | `no` | Отправлять письмо при каждом бане |
@@ -81,7 +101,7 @@ sudo ./autosec.sh
 ### Пример кастомной конфигурации
 
 ```bash
-# Открываем SSH на нестандартном порту + доп. порт для приложения
+# SSH на нестандартном порту + дополнительный порт для приложения
 UFW_SSH_PORT="2222"
 UFW_EXTRA_PORTS="3000,8080"
 
@@ -111,19 +131,45 @@ cat /var/log/autosec_install.log
 ## Типичные проблемы
 
 ### Скрипт требует root
+
 ```bash
 sudo ./autosec.sh
 ```
 
 ### UFW не найден в репозитории (CentOS/RHEL)
-В редких случаях `ufw` отсутствует в репозитории. Установите EPEL:
+
+В редких случаях `ufw` отсутствует в стандартном репозитории. Установите EPEL и повторите запуск:
+
 ```bash
 sudo dnf install epel-release
 sudo ./autosec.sh
 ```
 
 ### Потеря SSH-доступа
-Скрипт **всегда** открывает порт SSH (`UFW_SSH_PORT`) перед активацией UFW. Если вы меняли порт SSH вручную после установки ОС — убедитесь, что `UFW_SSH_PORT` совпадает с фактическим портом в `/etc/ssh/sshd_config`.
+
+Скрипт **всегда** открывает порт SSH (`UFW_SSH_PORT`) перед активацией UFW. Если вы меняли порт SSH вручную — убедитесь, что `UFW_SSH_PORT` совпадает с фактическим портом в `/etc/ssh/sshd_config`.
+
+### fail2ban заблокировал мой IP
+
+Разблокировать IP вручную:
+
+```bash
+sudo fail2ban-client unban <IP>
+```
+
+Или разбанить все IP в конкретном jail:
+
+```bash
+sudo fail2ban-client set sshd unbanip <IP>
+```
+
+### Alpine Linux: fail2ban не запускается
+
+Alpine использует OpenRC, а не systemd. Перед запуском скрипта установите:
+
+```bash
+F2B_BACKEND="auto"
+```
 
 ---
 
