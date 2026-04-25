@@ -10,7 +10,7 @@
 
 ```bash
 # 1. Скачать скрипт
-wget https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/autosec.sh
+wget https://raw.githubusercontent.com/rosoporto/autoec/main/autosec.sh
 
 # 2. (Опционально) Отредактировать настройки
 nano autosec.sh
