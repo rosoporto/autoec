@@ -230,14 +230,14 @@ configure_ufw() {
     ufw deny in from 127.0.0.0/8
     ufw deny in from ::1
 
-    # SSH (идемпотентно)
-    ufw status numbered | grep -qE "[[:space:]]${UFW_SSH_PORT}/tcp[[:space:]]" || \
+    # SSH (идемпотентно — ufw show added работает и при inactive)
+    ufw show added | grep -qE "allow[[:space:]]+${UFW_SSH_PORT}/tcp(\s|$)" || \
         ufw allow "${UFW_SSH_PORT}/tcp" comment 'SSH (AutoSec)'
 
     # HTTP/HTTPS (идемпотентно)
-    ufw status numbered | grep -qE "[[:space:]]${UFW_HTTP_PORT}/tcp[[:space:]]" || \
+    ufw show added | grep -qE "allow[[:space:]]+${UFW_HTTP_PORT}/tcp(\s|$)" || \
         ufw allow "${UFW_HTTP_PORT}/tcp" comment 'HTTP (AutoSec)'
-    ufw status numbered | grep -qE "[[:space:]]${UFW_HTTPS_PORT}/tcp[[:space:]]" || \
+    ufw show added | grep -qE "allow[[:space:]]+${UFW_HTTPS_PORT}/tcp(\s|$)" || \
         ufw allow "${UFW_HTTPS_PORT}/tcp" comment 'HTTPS (AutoSec)'
 
     # Дополнительные порты
@@ -246,7 +246,7 @@ configure_ufw() {
         for port in "${PORTS[@]}"; do
             [[ -z "$port" ]] && continue
             if [[ "$port" =~ ^[0-9]+(/tcp|/udp)?$ ]]; then
-                ufw status numbered | grep -qE "[[:space:]]${port}[[:space:]]" || \
+                ufw show added | grep -qE "allow[[:space:]]+${port}(\s|$)" || \
                     ufw allow "$port" comment 'extra (AutoSec)'
                 log "  Доп. порт разрешён: $port"
             else
@@ -258,10 +258,13 @@ configure_ufw() {
     # ICMP
     configure_icmp
 
-    # КРИТИЧНО: guard от самоблокировки
-    if ! ufw status | grep -qE "[[:space:]]${UFW_SSH_PORT}/tcp[[:space:]]+ALLOW"; then
-        err "SSH-порт ${UFW_SSH_PORT}/tcp не найден в правилах UFW!"
+    # КРИТИЧНО: guard от самоблокировки.
+    # Используем 'ufw show added' — он показывает правила, которые будут
+    # применены при enable, независимо от текущего состояния (active/inactive).
+    if ! ufw show added | grep -qE "allow[[:space:]]+${UFW_SSH_PORT}/tcp(\s|$)"; then
+        err "SSH-порт ${UFW_SSH_PORT}/tcp не найден среди запланированных правил UFW!"
         err "Прерываю — включение UFW без SSH-порта заблокирует доступ."
+        err "Диагностика: sudo ufw show added"
         exit 1
     fi
 
